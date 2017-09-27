@@ -1,0 +1,14 @@
+{% extends 'base_template.html' %}
+{% block content %}
+  {% if error %}
+    <p style="color: red">{{ error }}</p>
+  {% endif %}
+  <form action='{{ url_for('add_chain') }}' method="post" name="add_channel">
+    {{ form.hidden_tag() }}
+    <p>Введите название исходящего канала: </p>
+    {{ form.outgoing }}
+    <p>Введите название входящего канала: </p>
+    {{ form.incoming }}
+    <input type="submit" value="Добавить каналы">
+  </form>
+{% endblock %}

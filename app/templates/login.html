@@ -1,0 +1,9 @@
+{% extends 'base_template.html' %}
+{% block content %}
+  <h1>Login</h1>
+  <form action="/login" method="post" name="confirm">
+    {{ form.hidden_tag() }}
+    {{ form.phone }}
+    <input type="submit" value="Send a code">
+  </form>
+{% endblock %}

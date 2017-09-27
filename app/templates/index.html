@@ -1,0 +1,14 @@
+{% extends 'base_template.html' %}
+{% block content %}
+  <h1>Hello World!</h1>
+  Channels:
+  <ul>
+  {% for chain in chains %}
+    <li>Пересылка из {{ chain.from_title }} в {{ chain.to_title }}.</li>
+  {% else %}
+    <li>Нет каналов</li>
+  {% endfor %}
+  </ul>
+  <a href="/add_channels">Добавить каналы</a>
+  <a href="/start_work">Начать обработку</a>
+{% endblock %}

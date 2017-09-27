@@ -1,0 +1,9 @@
+{% extends 'base_template.html' %}
+{% block content %}
+<h1>Confirm your phone</h1>
+  <form action="/confirm" method="post" name="confirm">
+    {{ form.hidden_tag() }}
+    {{ form.code }}
+    <input type="submit" value="Confirm">
+  </form>
+{% endblock %}
