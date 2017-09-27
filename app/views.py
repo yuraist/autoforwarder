@@ -9,19 +9,19 @@ from app.models import ChannelChain
 def check_authorization():
     # Check if user is not authorized
     if not monitor.client.is_user_authorized():
-        # Try get the session name
-        phone = session.get('phone', None)
-        print(phone)
-        if phone is not None:
-            if request.endpoint != 'login':
-            # If monitor does not send code (returns False), then the user authorization is done.
-            # Otherwise user will get the code from Telegram and he have confirm it.
-                if monitor.send_code(phone=phone) and request.endpoint != 'confirm':
+        if (request.endpoint != 'login') and (request.endpoint != 'confirm'):
+            # Try get the session name
+            phone = session.get('phone', None)
+            print(phone)
+            if phone is not None:
+                # If monitor does not send code (returns False), then the user authorization is done.
+                # Otherwise user will get the code from Telegram and he have confirm it.
+                if monitor.send_code(phone=phone):
                     return redirect(url_for('confirm'))
-        else:
-            # Redirect to the login page so the phone (name of the session) has not be found.
-            if request.endpoint != 'login':
-                return redirect(url_for('login'))
+            else:
+                # Redirect to the login page so the phone (name of the session) has not be found.
+                if request.endpoint != 'login':
+                    return redirect(url_for('login'))
 
 
 @app.route('/')
