@@ -98,3 +98,9 @@ def add_chain():
         else:
             error = result
     return render_template('add_channel.html', form=form, error=error)
+
+@app.route('/clear')
+def clear():
+    """Clears the Flask session"""
+    session.clear()
+    return redirect(url_for('index'))
