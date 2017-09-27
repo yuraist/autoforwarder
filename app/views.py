@@ -39,7 +39,7 @@ def start_work():
 
     # Begin a new asynchronous job
     phone = session.get('phone', None)
-    job = q.enqueue_call(func=background_task, args=(phone,))
+    job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
     print(job.get_id())
 
     # Redirect to the main page
