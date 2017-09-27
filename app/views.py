@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, session
+from flask import render_template, redirect, url_for, session, request
 
 from app import app, monitor, q
 from app.forms import PhoneForm, ConfirmationForm, AddChannelsForm
@@ -15,10 +15,12 @@ def check_authorization():
             # If monitor does not send code (returns False), then the user authorization is done.
             # Otherwise user will get the code from Telegram and he have confirm it.
             if monitor.send_code(phone=phone):
-                return redirect(url_for('confirm'))
+                if request.endpoint != 'confirm':
+                    return redirect(url_for('confirm'))
         else:
             # Redirect to the login page so the phone (name of the session) has not be found.
-            return redirect(url_for('login'))
+            if request.endpoint != 'login':
+                return redirect(url_for('login'))
 
 
 @app.route('/')
