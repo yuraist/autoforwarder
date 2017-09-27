@@ -46,6 +46,7 @@ class Monitor:
         if self.client.is_user_authorized():
             return False
 
+        print('user is not authorized')
         self.client.send_code_request(phone=phone)
         return True
 
