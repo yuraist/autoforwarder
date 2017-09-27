@@ -9,6 +9,7 @@ from app.models import ChannelChain
 def check_authorization():
     # Check if user is not authorized
     if not monitor.client.is_user_authorized():
+        print('user is not authorized')
         if (request.endpoint != 'login') and (request.endpoint != 'confirm'):
             # Try get the session name
             phone = session.get('phone', None)
