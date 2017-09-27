@@ -35,7 +35,8 @@ def background_task(phone):
 @app.route('/start_work')
 def start_work():
     # Clear the queue
-    q.jobs.clear()
+    for job in q.get_jobs():
+        job.kill()
 
     # Begin a new asynchronous job
     phone = session.get('phone', None)
@@ -91,7 +92,7 @@ def add_chain():
         # Try to add channel chain into the database
         result = monitor.add_chain(from_channel_name=from_channel_name, to_channel_name=to_channel_name)
         if result == True:
-            return redirect(url_for('index'))
+            return redirect(url_for('start_work'))
         else:
             error = result
     return render_template('add_channel.html', form=form, error=error)
