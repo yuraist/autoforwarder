@@ -4,7 +4,7 @@
   Channels:
   <ul>
   {% for chain in chains %}
-    <li>Пересылка из {{ chain.from_title }} в {{ chain.to_title }}.</li>
+    <li>Пересылка из <strong style="color: olivedrab">{{ chain.from_title }}</strong> в <strong style="color: olivedrab">{{ chain.to_title }}</strong>.</li>
     <a href="{{ url_for('delete', chain=chain.id) }}" style="color: indianred"> Удалить </a>
   {% else %}
     <li>Нет каналов</li>

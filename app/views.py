@@ -1,4 +1,5 @@
 from flask import render_template, redirect, url_for, session, request
+from rq import Worker
 
 from app import app, db, monitor, q
 from app.forms import PhoneForm, ConfirmationForm, AddChannelsForm
@@ -34,12 +35,9 @@ def index():
 def background_task(phone):
     monitor.start_monitoring(phone)
 
+
 @app.route('/start_work')
 def start_work():
-    # Clear the queue
-    for job in q.get_jobs():
-        job.kill()
-
     # Begin a new asynchronous job
     phone = session.get('phone', None)
     job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
@@ -94,9 +92,10 @@ def add_chain():
         # Try to add channel chain into the database
         result = monitor.add_chain(from_channel_name=from_channel_name, to_channel_name=to_channel_name)
         if result == True:
-            return redirect(url_for('start_work'))
+            return redirect(url_for('index'))
         else:
             error = result
+
     return render_template('add_channel.html', form=form, error=error)
 
 
@@ -121,3 +120,9 @@ def clear():
     print(session.get('phone', None))
     # monitor.client.log_out()
     return '<a href="/login">Login</a>'
+
+
+@app.route('/stop_task')
+def stop_task():
+
+    return f'<h1>{q.get_jobs()}</h1>'

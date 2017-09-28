@@ -105,6 +105,7 @@ class Monitor:
 
         # Update the chain list
         self.update_chains()
+        print(f'New chains: {self.chains}')
         return True
 
     def start_monitoring(self, phone):
@@ -116,48 +117,54 @@ class Monitor:
 
         while True:
             for chain in self.chains:
-                # Setup peers for incoming channel and outgoing channel
-                from_id = int(chain.from_id)
-                from_access_hash = int(chain.from_access_hash)
-                to_id = int(chain.to_id)
-                to_access_hash = int(chain.to_access_hash)
+                try:
+                    # Setup peers for incoming channel and outgoing channel
+                    from_id = int(chain.from_id)
+                    from_access_hash = int(chain.from_access_hash)
+                    to_id = int(chain.to_id)
+                    to_access_hash = int(chain.to_access_hash)
 
-                from_peer = InputPeerChannel(channel_id=from_id, access_hash=from_access_hash)
-                to_peer = InputPeerChannel(channel_id=to_id, access_hash=to_access_hash)
+                    from_peer = InputPeerChannel(channel_id=from_id, access_hash=from_access_hash)
+                    to_peer = InputPeerChannel(channel_id=to_id, access_hash=to_access_hash)
 
-                last_message = chain.last_message
+                    last_message = chain.last_message
 
-                # Get new messages (not forwarded)
-                new_messages = self.client(GetHistoryRequest(
-                    peer=from_peer,
-                    offset_id=0,
-                    offset_date=datetime.now(),
-                    add_offset=0,
-                    limit=1000,
-                    max_id=-1,
-                    min_id=last_message
-                )).messages
+                    # Get new messages (not forwarded)
+                    new_messages = self.client(GetHistoryRequest(
+                        peer=from_peer,
+                        offset_id=0,
+                        offset_date=datetime.now(),
+                        add_offset=0,
+                        limit=1000,
+                        max_id=-1,
+                        min_id=last_message
+                    )).messages
 
-                # Get the new message ids for further forwarding
-                ids = [message.id for message in new_messages][::-1]
+                    # Get the new message ids for further forwarding
+                    ids = [message.id for message in new_messages][::-1]
 
-                if len(ids) > 0:
-                    # Forward new messages
-                    self.client(ForwardMessagesRequest(
-                        from_peer=from_peer,
-                        to_peer=to_peer,
-                        id=ids
-                    ))
+                    if len(ids) > 0:
+                        # Forward new messages
+                        self.client(ForwardMessagesRequest(
+                            from_peer=from_peer,
+                            to_peer=to_peer,
+                            id=ids
+                        ))
 
-                    # Update last forwarded message in the database
-                    max_id = max(ids)
-                    chain.last_message = max_id
+                        # Update last forwarded message in the database
+                        max_id = max(ids)
+                        chain.last_message = max_id
 
-                    db_session = db.object_session(chain)
-                    if db_session is None:
-                        db_session = db.session
-                    db_session.add(chain)
-                    db_session.commit()
+                        db_session = db.object_session(chain)
+                        if db_session is None:
+                            db_session = db.session
+                        db_session.add(chain)
+                        db_session.commit()
+                except:
+                    print('error')
+
+                # Check if new chains has been added or old has been removed
+                self.update_chains()
 
                 # Sleep for anti-flood
                 sleep(3)
