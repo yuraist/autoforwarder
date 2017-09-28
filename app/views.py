@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, session, request
 
-from app import app, monitor, q
+from app import app, db, monitor, q
 from app.forms import PhoneForm, ConfirmationForm, AddChannelsForm
 from app.models import ChannelChain
 
@@ -10,7 +10,7 @@ def check_authorization():
     # Check if user is not authorized
     if not monitor.client.is_user_authorized():
         print('user is not authorized')
-        if (request.endpoint != 'login') and (request.endpoint != 'confirm'):
+        if (request.endpoint != 'login') and (request.endpoint != 'confirm') and (request.endpoint != 'clear'):
             # Try get the session name
             phone = session.get('phone', None)
             print(phone)
@@ -99,8 +99,25 @@ def add_chain():
             error = result
     return render_template('add_channel.html', form=form, error=error)
 
+
+@app.route('/delete/<int:chain>')
+def delete(chain):
+
+    chain_to_delete = ChannelChain.query.filter_by(id=chain).first()
+    db_session = db.object_session(chain_to_delete)
+    if db_session is None:
+        db_session = db.session
+
+    db_session.delete(chain_to_delete)
+    db_session.commit()
+
+    return redirect(url_for('index'))
+
+
 @app.route('/clear')
 def clear():
     """Clears the Flask session"""
     session.clear()
-    return redirect(url_for('index'))
+    print(session.get('phone', None))
+    # monitor.client.log_out()
+    return '<a href="/login">Login</a>'

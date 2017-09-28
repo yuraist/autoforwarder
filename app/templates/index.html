@@ -5,6 +5,7 @@
   <ul>
   {% for chain in chains %}
     <li>Пересылка из {{ chain.from_title }} в {{ chain.to_title }}.</li>
+    <a href="{{ url_for('delete', chain=chain.id) }}" style="color: indianred"> Удалить </a>
   {% else %}
     <li>Нет каналов</li>
   {% endfor %}
