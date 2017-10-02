@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, session, request
+from flask import render_template, redirect, url_for, session, request, Response
 from rq import Worker
 
 from app import app, db, monitor, q
@@ -117,9 +117,10 @@ def delete(chain):
 def clear():
     """Clears the Flask session"""
     session.clear()
+    monitor.client.log_out()
     print(session.get('phone', None))
     # monitor.client.log_out()
-    return '<a href="/login">Login</a>'
+    return redirect(url_for('login'))
 
 
 @app.route('/stop_task')

@@ -1,15 +1,20 @@
 {% extends 'base_template.html' %}
 {% block content %}
-  <h1>Hello World!</h1>
-  Channels:
-  <ul>
+  <h2>Список каналов</h2>
+  <ul class="list-group">
   {% for chain in chains %}
-    <li>Пересылка из <strong style="color: olivedrab">{{ chain.from_title }}</strong> в <strong style="color: olivedrab">{{ chain.to_title }}</strong>.</li>
-    <a href="{{ url_for('delete', chain=chain.id) }}" style="color: indianred"> Удалить </a>
+    <li class="list-group-item justify-content-between">
+      Пересылка из {{ chain.from_title }} в {{ chain.to_title }}.
+      <a href="{{ url_for('delete', chain=chain.id) }}" style="color: indianred">
+        <span class="badge badge-default badge-pill">Удалить</span>
+      </a>
+    </li>
   {% else %}
-    <li>Нет каналов</li>
+    <li class="alert alert-info">Нет каналов</li>
   {% endfor %}
   </ul>
-  <a href="/add_channels">Добавить каналы</a>
-  <a href="/start_work">Начать обработку</a>
+  <div class="btn-group" style="margin-top: 20px;">
+    <a href="/add_channels" class="btn btn-primary">Добавить каналы</a>
+    <a href="/start_work" class="btn btn-success">Начать обработку</a>
+  </div>
 {% endblock %}

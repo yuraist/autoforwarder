@@ -3,7 +3,11 @@
 <h1>Confirm your phone</h1>
   <form action="/confirm" method="post" name="confirm">
     {{ form.hidden_tag() }}
-    {{ form.code }}
-    <input type="submit" value="Confirm">
+    <div class="input-group">
+      {{ form.code(class_='form-control') }}
+      <span class="input-group-btn">
+        <button class="btn btn-primary" type="submit">Подтвердить</button>
+      </span>
+    </div>
   </form>
 {% endblock %}
