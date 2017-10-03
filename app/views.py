@@ -75,7 +75,7 @@ def login():
             else:
                 return redirect(url_for('index'))
         except Exception as e:
-            sys.stdout.write(str(e))
+            sys.stdout.read(e)
 
     # Render the login template with the PhoneForm()
     return render_template('login.html', form=form)
