@@ -23,6 +23,8 @@ def check_authorization():
                         return redirect(url_for('confirm'))
                 except Exception as e:
                     print(str(e))
+                    if request.endpoint != 'login':
+                        return redirect(url_for('login'))
             else:
                 # Redirect to the login page so the phone (name of the session) has not be found.
                 if request.endpoint != 'login':
