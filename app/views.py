@@ -16,10 +16,13 @@ def check_authorization():
             phone = session.get('phone', None)
             print(phone)
             if phone is not None:
-                # If monitor does not send code (returns False), then the user authorization is done.
-                # Otherwise user will get the code from Telegram and he have confirm it.
-                if monitor.send_code(phone=phone):
-                    return redirect(url_for('confirm'))
+                try:
+                    # If monitor does not send code (returns False), then the user authorization is done.
+                    # Otherwise user will get the code from Telegram and he have confirm it.
+                    if monitor.send_code(phone=phone):
+                        return redirect(url_for('confirm'))
+                except Exception as e:
+                    print(str(e))
             else:
                 # Redirect to the login page so the phone (name of the session) has not be found.
                 if request.endpoint != 'login':
