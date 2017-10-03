@@ -160,8 +160,9 @@ class Monitor:
                             db_session = db.session
                         db_session.add(chain)
                         db_session.commit()
-                except:
-                    print('error')
+                except Exception as e:
+                    print(str(e))
+                    return e
 
                 # Check if new chains has been added or old has been removed
                 self.update_chains()

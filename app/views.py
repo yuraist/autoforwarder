@@ -76,8 +76,11 @@ def confirm():
     if form.validate_on_submit():
         code = int(form.code.data)
 
-        # Confirm the code
-        monitor.confirm(code=code)
+        try:
+            # Confirm the code
+            monitor.confirm(code=code)
+        except Exception as e:
+            print(str(e))
 
         return redirect(url_for('index'))
 
@@ -126,10 +129,3 @@ def clear():
     print(session.get('phone', None))
     # monitor.client.log_out()
     return redirect(url_for('login'))
-
-
-@app.route('/late')
-def late():
-    import time
-    time.sleep(3)
-    return 'zzz'
