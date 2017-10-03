@@ -1,5 +1,8 @@
 {% extends 'base_template.html' %}
 {% block content %}
+  {% if user %}
+    <p>Привет, @{{ user.username }}</p>
+  {% endif %}
   <h2>Список каналов</h2>
   <ul class="list-group">
   {% for chain in chains %}

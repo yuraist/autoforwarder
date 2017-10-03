@@ -22,13 +22,13 @@ class Monitor:
     api_id = os.environ['API_ID']
     api_hash = os.environ['API_HASH']
 
-    def __init__(self, session=None):
+    def __init__(self):
 
         # Get channels chains
         self.chains = ChannelChain.query.all()
 
         # Connect the Telegram client
-        self.client = TelegramClient(session, api_id=self.api_id, api_hash=self.api_hash)
+        self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
         self.client.connect()
 
     def update_chains(self):
@@ -40,7 +40,7 @@ class Monitor:
         or sends confirmation code and returns True if it's not.
         """
         self.client.disconnect()
-        self.client = TelegramClient(phone, api_id=self.api_id, api_hash=self.api_hash)
+        self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
         self.client.connect()
 
         if self.client.is_user_authorized():
@@ -112,7 +112,7 @@ class Monitor:
         """Monitors new messages in channels and forward them into needed channels.
         """
         if not self.client.is_user_authorized():
-            self.client = TelegramClient(phone, api_id=self.api_id, api_hash=self.api_hash)
+            self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
             self.client.connect()
 
         while True:

@@ -29,7 +29,11 @@ def check_authorization():
 @app.route('/')
 def index():
     chains = ChannelChain.query.all()
-    return render_template('index.html', chains=chains)
+    try:
+        user = monitor.client.get_me().to_dict()
+    except:
+        user = None
+    return render_template('index.html', chains=chains, user=user)
 
 
 def background_task(phone):
@@ -74,6 +78,7 @@ def confirm():
 
         # Confirm the code
         monitor.confirm(code=code)
+
         return redirect(url_for('index'))
 
     # Render the confirm template with the ConfirmationForm()
@@ -123,7 +128,8 @@ def clear():
     return redirect(url_for('login'))
 
 
-@app.route('/stop_task')
-def stop_task():
-
-    return f'<h1>{q.get_jobs()}</h1>'
+@app.route('/late')
+def late():
+    import time
+    time.sleep(3)
+    return 'zzz'
