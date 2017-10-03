@@ -31,7 +31,8 @@ def index():
     chains = ChannelChain.query.all()
     try:
         user = monitor.client.get_me().to_dict()
-    except:
+    except Exception as e:
+        print(str(e))
         user = None
     return render_template('index.html', chains=chains, user=user)
 
@@ -50,6 +51,7 @@ def start_work():
     # Redirect to the main page
     return redirect(url_for('index'))
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = PhoneForm()
@@ -60,11 +62,14 @@ def login():
         # Save the phone into the session
         session['phone'] = phone
 
-        # Setup the client
-        if monitor.send_code(phone=phone):
-            return redirect(url_for('confirm'))
-        else:
-            return redirect(url_for('index'))
+        try:
+            # Setup the client
+            if monitor.send_code(phone=phone):
+                return redirect(url_for('confirm'))
+            else:
+                return redirect(url_for('index'))
+        except Exception as e:
+            print(e)
 
     # Render the login template with the PhoneForm()
     return render_template('login.html', form=form)
@@ -99,7 +104,7 @@ def add_chain():
 
         # Try to add channel chain into the database
         result = monitor.add_chain(from_channel_name=from_channel_name, to_channel_name=to_channel_name)
-        if result == True:
+        if result is True:
             return redirect(url_for('index'))
         else:
             error = result
