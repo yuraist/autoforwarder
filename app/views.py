@@ -1,3 +1,4 @@
+import sys
 from flask import render_template, redirect, url_for, session, request, Response
 from rq import Worker
 
@@ -22,7 +23,7 @@ def check_authorization():
                     if monitor.send_code(phone=phone):
                         return redirect(url_for('confirm'))
                 except Exception as e:
-                    print(str(e))
+                    sys.stdout.write(str(e))
                     if request.endpoint != 'login':
                         return redirect(url_for('login'))
             else:
@@ -37,7 +38,7 @@ def index():
     try:
         user = monitor.client.get_me().to_dict()
     except Exception as e:
-        print(str(e))
+        sys.stdout.write(str(e))
         user = None
     return render_template('index.html', chains=chains, user=user)
 
@@ -74,7 +75,7 @@ def login():
             else:
                 return redirect(url_for('index'))
         except Exception as e:
-            print(e)
+            sys.stdout.write(str(e))
 
     # Render the login template with the PhoneForm()
     return render_template('login.html', form=form)
@@ -90,7 +91,7 @@ def confirm():
             # Confirm the code
             monitor.confirm(code=code)
         except Exception as e:
-            print(str(e))
+            sys.stdout.write(str(e))
 
         return redirect(url_for('index'))
 
