@@ -96,10 +96,9 @@ def confirm():
         try:
             # Confirm the code
             monitor.confirm(code=code)
+            return redirect(url_for('index'))
         except Exception as e:
             return render_template('confirm.html', form=form, error=str(e))
-
-        return redirect(url_for('index'))
 
     # Render the confirm template with the ConfirmationForm()
     return render_template('confirm.html', form=form)
@@ -148,4 +147,5 @@ def clear():
         # monitor.client.log_out()
     except Exception as e:
         return render_template(url_for('login', error=str(e)))
+
     return redirect(url_for('login'))
