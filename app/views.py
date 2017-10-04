@@ -34,6 +34,8 @@ def check_authorization():
 
 @app.route('/')
 def index():
+    if not monitor.client.is_user_authorized():
+        return redirect(url_for('login'))
     chains = ChannelChain.query.all()
     try:
         user = monitor.client.get_me().to_dict()
