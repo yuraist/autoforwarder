@@ -1,6 +1,12 @@
 {% extends 'base_template.html' %}
 {% block content %}
 <h1>Confirm your phone</h1>
+
+  <!-- ERROR HANDLING -->
+
+  {% if error %}
+    <p style="color: red;">error</p>
+  {% endif %}
   <form action="/confirm" method="post" name="confirm">
     {{ form.hidden_tag() }}
     <div class="input-group">

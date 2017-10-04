@@ -36,11 +36,12 @@ def check_authorization():
 def index():
     if not monitor.client.is_user_authorized():
         return redirect(url_for('login'))
+
     chains = ChannelChain.query.all()
     try:
         user = monitor.client.get_me().to_dict()
     except Exception as e:
-        sys.stdout.write(str(e))
+        return render_template('index.html', error=str(e))
         user = None
     return render_template('index.html', chains=chains, user=user)
 
@@ -51,10 +52,13 @@ def background_task(phone):
 
 @app.route('/start_work')
 def start_work():
-    # Begin a new asynchronous job
-    phone = session.get('phone', None)
-    job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
-    print(job.get_id())
+    try:
+        # Begin a new asynchronous job
+        phone = session.get('phone', None)
+        job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
+        print(job.get_id())
+    except Exception as e:
+        return redirect(url_for('index', error=str(e)))
 
     # Redirect to the main page
     return redirect(url_for('index'))
@@ -77,7 +81,7 @@ def login():
             else:
                 return redirect(url_for('index'))
         except Exception as e:
-            sys.stdout.read(e)
+            return render_template('login.html', form=form, error=str(e))
 
     # Render the login template with the PhoneForm()
     return render_template('login.html', form=form)
@@ -93,7 +97,7 @@ def confirm():
             # Confirm the code
             monitor.confirm(code=code)
         except Exception as e:
-            sys.stdout.write(str(e))
+            return render_template('confirm.html', form=form, error=str(e))
 
         return redirect(url_for('index'))
 

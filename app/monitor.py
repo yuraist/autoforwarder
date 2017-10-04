@@ -54,22 +54,26 @@ class Monitor:
         return self.client.sign_in(code=code)
 
     def add_chain(self, from_channel_name, to_channel_name):
-        # Request all user's chats
-        chats = self.client(GetAllChatsRequest(except_ids=[])).chats
 
-        # Create a channel chain
-        channel_chain = ChannelChain()
+        try:
+            # Request all user's chats
+            chats = self.client(GetAllChatsRequest(except_ids=[])).chats
 
-        # Get needed channels info
-        for chat in chats:
-            if from_channel_name in chat.title:
-                channel_chain.from_title = chat.title
-                channel_chain.from_id = chat.id
-                channel_chain.from_access_hash = chat.access_hash
-            elif to_channel_name in chat.title:
-                channel_chain.to_title = chat.title
-                channel_chain.to_id = chat.id
-                channel_chain.to_access_hash = chat.access_hash
+            # Create a channel chain
+            channel_chain = ChannelChain()
+
+            # Get needed channels info
+            for chat in chats:
+                if from_channel_name in chat.title:
+                    channel_chain.from_title = chat.title
+                    channel_chain.from_id = chat.id
+                    channel_chain.from_access_hash = chat.access_hash
+                elif to_channel_name in chat.title:
+                    channel_chain.to_title = chat.title
+                    channel_chain.to_id = chat.id
+                    channel_chain.to_access_hash = chat.access_hash
+        except Exception as e:
+            return str(e)
 
         # Check if a channel is not found and return an error text
         if (channel_chain.from_title is None) or (channel_chain.to_title is None):
@@ -79,32 +83,36 @@ class Monitor:
         return self.save_channel_chain(channel_chain)
 
     def save_channel_chain(self, channel_chain):
-        # Create incoming channel peer for requesting the last message id
-        peer = InputPeerChannel(channel_id=int(channel_chain.from_id), access_hash=int(channel_chain.from_access_hash))
+        try:
+            # Create incoming channel peer for requesting the last message id
+            peer = InputPeerChannel(channel_id=int(channel_chain.from_id), access_hash=int(channel_chain.from_access_hash))
 
-        # Get the last message
-        last_message = self.client(GetHistoryRequest(
-            peer=peer,
-            offset_id=0,
-            offset_date=datetime.now(),
-            add_offset=0,
-            limit=1,
-            max_id=-1,
-            min_id=0
-        )).messages
+            # Get the last message
+            last_message = self.client(GetHistoryRequest(
+                peer=peer,
+                offset_id=0,
+                offset_date=datetime.now(),
+                add_offset=0,
+                limit=1,
+                max_id=-1,
+                min_id=0
+            )).messages
 
-        # Get the last message id and set it to the channel_chain
-        if len(last_message) > 0:
-            channel_chain.last_message = last_message[0].id
-        else:
-            channel_chain.last_message = 0
+            # Get the last message id and set it to the channel_chain
+            if len(last_message) > 0:
+                channel_chain.last_message = last_message[0].id
+            else:
+                channel_chain.last_message = 0
 
-        # Add the channel chain into the database
-        db.session.add(channel_chain)
-        db.session.commit()
+            # Add the channel chain into the database
+            db.session.add(channel_chain)
+            db.session.commit()
 
-        # Update the chain list
-        self.update_chains()
+            # Update the chain list
+            self.update_chains()
+        except Exception as e:
+            return str(e)
+
         print(f'New chains: {self.chains}')
         return True
 

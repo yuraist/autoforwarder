@@ -4,6 +4,12 @@
     <p>Привет, @{{ user.username }}</p>
   {% endif %}
   <h2>Список каналов</h2>
+
+  <!-- ERROR HANDLING -->
+
+  {% if error %}
+    <p style="color: red;">error</p>
+  {% endif %}
   <ul class="list-group">
   {% for chain in chains %}
     <li class="list-group-item justify-content-between">
