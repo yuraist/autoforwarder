@@ -140,9 +140,12 @@ def delete(chain):
 
 @app.route('/clear')
 def clear():
-    """Clears the Flask session"""
-    session.clear()
-    monitor.client.log_out()
-    print(session.get('phone', None))
-    # monitor.client.log_out()
+    try:
+        """Clears the Flask session"""
+        session.clear()
+        monitor.client.log_out()
+        print(session.get('phone', None))
+        # monitor.client.log_out()
+    except Exception as e:
+        return render_template(url_for('login', error=str(e)))
     return redirect(url_for('login'))
