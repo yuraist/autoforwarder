@@ -1,6 +1,4 @@
-import sys
-from flask import render_template, redirect, url_for, session, request, Response
-from rq import Worker
+from flask import render_template, redirect, url_for, session, request
 
 from app import app, db, monitor, q
 from app.forms import PhoneForm, ConfirmationForm, AddChannelsForm
@@ -9,45 +7,39 @@ from app.models import ChannelChain
 
 @app.before_request
 def check_authorization():
-    # Check if user is not authorized
-    if not monitor.client.is_user_authorized():
-        print('user is not authorized')
-        if (request.endpoint != 'login') and (request.endpoint != 'confirm') and (request.endpoint != 'clear'):
-            # Try get the session name
-            phone = session.get('phone', None)
-            print(phone)
-            if phone is not None:
-                try:
-                    # If monitor does not send code (returns False), then the user authorization is done.
-                    # Otherwise user will get the code from Telegram and he have confirm it.
-                    if monitor.send_code(phone=phone):
-                        return redirect(url_for('confirm'))
-                except Exception as e:
-                    sys.stdout.write(str(e))
-                    if request.endpoint != 'login':
-                        return redirect(url_for('login'))
-            else:
-                # Redirect to the login page so the phone (name of the session) has not be found.
-                if request.endpoint != 'login':
-                    return redirect(url_for('login'))
+    if request.endpoint != 'login' and request.endpoint != 'confirm':
+        if not monitor.check_auth():
+            # If user is not authorized open the ask page
+            if request.endpoint != 'ask':
+                return redirect(url_for('ask'))
 
 
 @app.route('/')
 def index():
-    if not monitor.client.is_user_authorized():
+    if not monitor.check_auth():
         return redirect(url_for('login'))
 
-    chains = ChannelChain.query.all()
+    # Get the channel chain list
+    chains = monitor.get_chains()
+    user = None
+
+    # Try to get user information
     try:
         user = monitor.client.get_me().to_dict()
     except Exception as e:
         return render_template('index.html', error=str(e))
-        user = None
+
     return render_template('index.html', chains=chains, user=user)
 
 
-def background_task(phone):
-    monitor.start_monitoring(phone)
+@app.route('/ask')
+def ask():
+    html = '<a href="/login">Авторизоваться</a>'
+    return html
+
+
+def background_task():
+    monitor.start_monitoring()
 
 
 @app.route('/start_work')
@@ -55,7 +47,7 @@ def start_work():
     try:
         # Begin a new asynchronous job
         phone = session.get('phone', None)
-        job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
+        job = q.enqueue_call(func=background_task, args=(), timeout='10000h')
         print(job.get_id())
     except Exception as e:
         return redirect(url_for('index', error=str(e)))
@@ -71,17 +63,16 @@ def login():
         # Get a phone number from the POST-request
         phone = form.phone.data
 
-        # Save the phone into the session
-        session['phone'] = phone
+        # Send code and receive result. True if the code has been sent and an error string if a query caught an error
+        code_sent = monitor.send_code(phone=phone)
 
-        try:
-            # Setup the client
-            if monitor.send_code(phone=phone):
-                return redirect(url_for('confirm'))
-            else:
-                return redirect(url_for('index'))
-        except Exception as e:
-            return render_template('login.html', form=form, error=str(e))
+        # Check for errors
+        if code_sent is True:
+            return redirect(url_for('confirm'))
+        elif code_sent == 'User is authorized':
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', form=form, error=code_sent)
 
     # Render the login template with the PhoneForm()
     return render_template('login.html', form=form)
@@ -93,8 +84,8 @@ def confirm():
     if form.validate_on_submit():
         code = int(form.code.data)
 
+        # Confirm the code
         try:
-            # Confirm the code
             monitor.confirm(code=code)
             return redirect(url_for('index'))
         except Exception as e:
@@ -143,9 +134,8 @@ def clear():
         """Clears the Flask session"""
         session.clear()
         monitor.client.log_out()
-        print(session.get('phone', None))
-        # monitor.client.log_out()
+
     except Exception as e:
-        return render_template(url_for('login', error=str(e)))
+        return redirect(url_for('login', error=str(e)))
 
     return redirect(url_for('login'))

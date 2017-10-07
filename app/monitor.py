@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Import third-party modules, classes and methods
 from telethon import TelegramClient
-from telethon.tl.types import InputPeerChannel
+from telethon.tl.types import InputPeerChannel, Chat
 from telethon.tl.functions.messages import GetHistoryRequest, ForwardMessagesRequest, GetAllChatsRequest
 
 # Import my objects and classes
@@ -19,163 +19,210 @@ class Monitor:
     Use this class only if you have valid session for a user. If you have not the session, create it using phone number 
      and code sent by Telegram (confirm it using web-form).
     """
-    api_id = os.environ['API_ID']
-    api_hash = os.environ['API_HASH']
 
     def __init__(self):
 
-        # Get channels chains
-        self.chains = ChannelChain.query.all()
-
         # Connect the Telegram client
-        self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
+        self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
         self.client.connect()
 
-    def update_chains(self):
-        # Get all chains for now
-        self.chains = ChannelChain.query.all()
+    @staticmethod
+    def get_api_id():
+        """Returns an api identifier from the global variables"""
+        return os.environ['API_ID']
+
+    @staticmethod
+    def get_api_hash():
+        """Returns an api hash code from the global variables"""
+        return os.environ['API_HASH']
+
+    @staticmethod
+    def get_chains():
+        """Returns a list of all channels from database"""
+        return ChannelChain.query.all()
+
+    def check_auth(self):
+        return self.client.is_user_authorized()
 
     def send_code(self, phone):
-        """Check if session has already been created (and returns False) 
-        or sends confirmation code and returns True if it's not.
         """
-        self.client.disconnect()
-        self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
-        self.client.connect()
+        Check if session has already been created (and returns False) 
+        or sends confirmation code and returns True if this's not.
+        """
 
-        if self.client.is_user_authorized():
-            return False
+        if self.check_auth():
+            return 'User is authorized'
 
-        self.client.send_code_request(phone=phone)
-        return True
+        try:
+            self.client.send_code_request(phone=phone)
+            return True
+        except Exception as e:
+            return str(e)
 
     def confirm(self, code):
-        # Sign in a user
+        # Sign in a user using received code
         return self.client.sign_in(code=code)
 
-    def add_chain(self, from_channel_name, to_channel_name):
-
+    def get_all_chats(self):
+        """
+        Tries to receive all user's chats and return them.
+        If the query catches an error the method returns an empty list
+        """
         try:
-            # Request all user's chats
-            chats = self.client(GetAllChatsRequest(except_ids=[])).chats
-
-            # Create a channel chain
-            channel_chain = ChannelChain()
-
-            # Get needed channels info
-            for chat in chats:
-                if from_channel_name in chat.title:
-                    channel_chain.from_title = chat.title
-                    channel_chain.from_id = chat.id
-                    channel_chain.from_access_hash = chat.access_hash
-                elif to_channel_name in chat.title:
-                    channel_chain.to_title = chat.title
-                    channel_chain.to_id = chat.id
-                    channel_chain.to_access_hash = chat.access_hash
+            return self.client(GetAllChatsRequest(except_ids=[])).chats
         except Exception as e:
-            return str(e)
+            print(e)
+            return []
+
+    @staticmethod
+    def get_channel_chain(chats, name_from, name_to):
+        """
+        Finds needed channels and save them into the ChannelChain class object.
+        If there is an error the method return an error string
+        """
+        chain = ChannelChain()
+
+        for chat in chats:
+            try:
+                if chat.title == name_from:
+                    chain.from_id = chat.id
+                    chain.from_title = chat.title
+                    chain.from_access_hash = chat.access_hash
+                elif chat.title == name_to:
+                    chain.to_id = chat.id
+                    chain.to_title = chat.title
+                    chain.to_access_hash = chat.access_hash
+            except Exception as e:
+                return str(e)
 
         # Check if a channel is not found and return an error text
-        if (channel_chain.from_title is None) or (channel_chain.to_title is None):
+        if (chain.from_title is None) or (chain.to_title is None):
             return 'Канал с данным названием не найден. Проверьте, что оба названия введены верно.'
 
-        # Call the save_channel_chain method to add the last message property and save the chain into db
-        return self.save_channel_chain(channel_chain)
+        return chain
 
-    def save_channel_chain(self, channel_chain):
+    def get_last_message(self, chain):
+        """Returns the last message id of outgoing channel."""
+
+        # Create incoming channel peer for requesting the last message id
+        peer = InputPeerChannel(channel_id=int(chain.from_id),
+                                access_hash=int(chain.from_access_hash))
+
+        # Get all messages
+        messages = self.client(GetHistoryRequest(
+            peer=peer,
+            offset_id=0,
+            offset_date=datetime.now(),
+            add_offset=0,
+            limit=1,
+            max_id=-1,
+            min_id=0
+        )).messages
+
+        # Return the last message id
+        if len(messages) > 0:
+            return messages[0].id
+
+        return 0
+
+    @staticmethod
+    def save_into_db(chain):
+        """
+        Saves the chain into the database and commits db changes.  
+        """
         try:
-            # Create incoming channel peer for requesting the last message id
-            peer = InputPeerChannel(channel_id=int(channel_chain.from_id), access_hash=int(channel_chain.from_access_hash))
-
-            # Get the last message
-            last_message = self.client(GetHistoryRequest(
-                peer=peer,
-                offset_id=0,
-                offset_date=datetime.now(),
-                add_offset=0,
-                limit=1,
-                max_id=-1,
-                min_id=0
-            )).messages
-
-            # Get the last message id and set it to the channel_chain
-            if len(last_message) > 0:
-                channel_chain.last_message = last_message[0].id
-            else:
-                channel_chain.last_message = 0
-
-            # Add the channel chain into the database
-            db.session.add(channel_chain)
+            db.session.add(chain)
             db.session.commit()
-
-            # Update the chain list
-            self.update_chains()
+            return True
         except Exception as e:
             return str(e)
 
-        print(f'New chains: {self.chains}')
+    def add_chain(self, from_channel_name, to_channel_name):
+        """
+        Creates a new chain of channels
+        :param from_channel_name: str - Outgoing channel name
+        :param to_channel_name: str - Incoming channel name
+        :return: True if operation is successful or an error string  
+        """
+
+        try:
+            # Get all chats
+            chats = self.get_all_chats()
+
+            # Get chain of needed channels
+            chain = self.get_channel_chain(chats=chats, name_from=from_channel_name, name_to=to_channel_name)
+            if not isinstance(chain, ChannelChain):
+                return chain
+
+            # Set the last message identifier into the ChannelChain class object
+            chain.last_message= self.get_last_message(chain=chain)
+
+            # Save chain into db
+            return self.save_into_db(chain=chain)
+        except Exception as e:
+            return str(e)
+
+    def new_message_ids(self, peer, last_id):
+        try:
+            msgs = self.client(GetHistoryRequest(
+                            peer=peer,
+                            offset_id=0,
+                            offset_date=datetime.now(),
+                            add_offset=0,
+                            limit=1000,
+                            max_id=-1,
+                            min_id=last_id
+                        )).messages
+            ids = [msg.id for msg in msgs][::-1]
+            return ids
+        except Exception as e:
+            print(str(e))
+            return []
+
+    def forward_messages(self, messages, peer_from, peer_to):
+        try:
+            self.client(ForwardMessagesRequest(
+                from_peer=peer_from,
+                to_peer=peer_to,
+                id=messages
+            ))
+        except Exception as e:
+            return str(e)
+
         return True
 
-    def start_monitoring(self, phone):
+    def run_loop(self):
+        while True:
+            for chain in self.get_chains():
+
+                # Setup peers for the incoming channel and the outgoing channel
+                peer_from = InputPeerChannel(channel_id=int(chain.from_id), access_hash=int(chain.from_access_hash))
+                peer_to = InputPeerChannel(channel_id=int(chain.to_id), access_hash=int(chain.to_access_hash))
+
+                # Get the last forwarded message id
+                last_message_id = chain.last_message
+
+                # Get messages for forwarding
+                messages_to_fwd = self.new_message_ids(peer=peer_from, last_id=last_message_id)
+
+                # Forward all messages
+                if len(messages_to_fwd) > 0:
+                    if self.forward_messages(messages=messages_to_fwd, peer_from=peer_from, peer_to=peer_to) is True:
+
+                        # Update the last message id in the database
+                        chain.last_message = max(messages_to_fwd)
+                        self.save_into_db(chain=chain)
+
+                # Anti-flood sleeping
+                sleep(2)
+
+            sleep(2)
+
+    def start_monitoring(self):
         """Monitors new messages in channels and forward them into needed channels.
         """
-        if not self.client.is_user_authorized():
-            self.client = TelegramClient('ssn', api_id=self.api_id, api_hash=self.api_hash)
+        if not self.check_auth():
+            self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
             self.client.connect()
 
-        while True:
-            for chain in self.chains:
-                try:
-                    # Setup peers for incoming channel and outgoing channel
-                    from_id = int(chain.from_id)
-                    from_access_hash = int(chain.from_access_hash)
-                    to_id = int(chain.to_id)
-                    to_access_hash = int(chain.to_access_hash)
-
-                    from_peer = InputPeerChannel(channel_id=from_id, access_hash=from_access_hash)
-                    to_peer = InputPeerChannel(channel_id=to_id, access_hash=to_access_hash)
-
-                    last_message = chain.last_message
-
-                    # Get new messages (not forwarded)
-                    new_messages = self.client(GetHistoryRequest(
-                        peer=from_peer,
-                        offset_id=0,
-                        offset_date=datetime.now(),
-                        add_offset=0,
-                        limit=1000,
-                        max_id=-1,
-                        min_id=last_message
-                    )).messages
-
-                    # Get the new message ids for further forwarding
-                    ids = [message.id for message in new_messages][::-1]
-
-                    if len(ids) > 0:
-                        # Forward new messages
-                        self.client(ForwardMessagesRequest(
-                            from_peer=from_peer,
-                            to_peer=to_peer,
-                            id=ids
-                        ))
-
-                        # Update last forwarded message in the database
-                        max_id = max(ids)
-                        chain.last_message = max_id
-
-                        db_session = db.object_session(chain)
-                        if db_session is None:
-                            db_session = db.session
-                        db_session.add(chain)
-                        db_session.commit()
-                except Exception as e:
-                    print(str(e))
-                    return e
-
-                # Check if new chains has been added or old has been removed
-                self.update_chains()
-
-                # Sleep for anti-flood
-                sleep(3)
-            # Sleep for 2 second
-            sleep(2)
+        self.run_loop()
