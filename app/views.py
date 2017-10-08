@@ -9,15 +9,20 @@ from app.models import ChannelChain
 def check_authorization():
     if request.endpoint != 'login' and request.endpoint != 'confirm':
         if not monitor.check_auth():
-            # If user is not authorized open the ask page
-            if request.endpoint != 'ask':
-                return redirect(url_for('ask'))
+            if 'client' in session:
+                monitor.client = session['client']
+            else:
+                # If user is not authorized open the ask page
+                if request.endpoint != 'ask':
+                    return redirect(url_for('ask'))
 
 
 @app.route('/')
 def index():
     if not monitor.check_auth():
         return redirect(url_for('login'))
+
+    session['client'] = monitor.client
 
     # Get the channel chain list
     chains = monitor.get_chains()
