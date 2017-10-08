@@ -44,6 +44,15 @@ class Monitor:
     def check_auth(self):
         return self.client.is_user_authorized()
 
+    def logout(self):
+        try:
+            self.client.log_out()
+            self.client.disconnect()
+            with open('ssn.session', 'w') as f:
+                f.write('')
+        except Exception as e:
+            return str(e)
+
     def send_code(self, phone):
         """
         Check if session has already been created (and returns False) 
@@ -51,7 +60,8 @@ class Monitor:
         """
 
         if self.check_auth():
-            return 'User is authorized'
+            self.logout()
+            self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
 
         try:
             self.client.send_code_request(phone=phone)
