@@ -45,11 +45,17 @@ class Monitor:
         return self.client.is_user_authorized()
 
     def logout(self):
+        """"
+        Recreates a new Telegram session
+        """
         try:
             self.client.log_out()
             self.client.disconnect()
             with open('ssn.session', 'w') as f:
                 f.write('')
+
+            self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
+            self.client.connect()
         except Exception as e:
             return str(e)
 
@@ -61,7 +67,6 @@ class Monitor:
 
         if self.check_auth():
             self.logout()
-            self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
 
         try:
             self.client.send_code_request(phone=phone)

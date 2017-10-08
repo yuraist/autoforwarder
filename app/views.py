@@ -130,7 +130,7 @@ def clear():
     try:
         """Clears the Flask session"""
         session.clear()
-        monitor.client.log_out()
+        monitor.logout()
 
     except Exception as e:
         return redirect(url_for('login', error=str(e)))
