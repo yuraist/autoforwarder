@@ -9,12 +9,8 @@ from app.models import ChannelChain
 def check_authorization():
     if request.endpoint != 'login' and request.endpoint != 'confirm':
         if not monitor.check_auth():
-            if 'client' in session:
-                monitor.client = session['client']
-            else:
-                # If user is not authorized open the ask page
-                if request.endpoint != 'ask':
-                    return redirect(url_for('ask'))
+            if request.endpoint != 'ask':
+                return redirect(url_for('ask'))
 
 
 @app.route('/')
@@ -22,11 +18,8 @@ def index():
     if not monitor.check_auth():
         return redirect(url_for('login'))
 
-    session['client'] = monitor.client
-
     # Get the channel chain list
     chains = monitor.get_chains()
-    user = None
 
     # Try to get user information
     try:
@@ -51,7 +44,6 @@ def background_task():
 def start_work():
     try:
         # Begin a new asynchronous job
-        phone = session.get('phone', None)
         job = q.enqueue_call(func=background_task, args=(), timeout='10000h')
         print(job.get_id())
     except Exception as e:
