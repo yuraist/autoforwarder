@@ -66,12 +66,14 @@ class Monitor:
         """
 
         if self.check_auth():
-            self.logout()
+            return 'User is authorized'
 
         try:
-            self.client.send_code_request(phone=phone)
+            result = self.client.send_code_request(phone=phone)
+            print(result)
             return True
         except Exception as e:
+            print(str(e))
             return str(e)
 
     def confirm(self, code):
