@@ -148,7 +148,7 @@ def delete(chain):
 def clear():
     try:
         """Clears the Flask session"""
-        session.clear()
+        session['phone'] = None
         monitor.logout()
 
     except Exception as e:

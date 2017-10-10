@@ -240,8 +240,8 @@ class Monitor:
     def start_monitoring(self, phone):
         """Monitors new messages in channels and forward them into needed channels.
         """
-        if not self.check_auth():
-            self.client = TelegramClient(phone, api_id=self.get_api_id(), api_hash=self.get_api_hash())
-            self.client.connect()
+        self.client.disconnect()
+        self.client = TelegramClient(phone, api_id=self.get_api_id(), api_hash=self.get_api_hash())
+        self.client.connect()
 
         self.run_loop()
