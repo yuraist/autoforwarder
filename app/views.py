@@ -9,6 +9,21 @@ from app.models import ChannelChain
 def check_authorization():
     if request.endpoint != 'login' and request.endpoint != 'confirm':
         if not monitor.check_auth():
+            # Try to connect to the existing TelegramClient session
+            phone = session.get('phone', None)
+            if phone is not None:
+                # Send code and receive result.
+                # True if the code has been sent and an error string if a query caught an error
+                code_sent = monitor.send_code(phone=phone)
+
+                # Check for errors
+                if code_sent is True:
+                    return redirect(url_for('confirm'))
+                elif code_sent == 'User is authorized':
+                    return redirect(url_for('index'))
+                else:
+                    redirect(url_for('login'))
+
             if request.endpoint != 'ask':
                 return redirect(url_for('ask'))
 
@@ -36,16 +51,18 @@ def ask():
     return html
 
 
-def background_task():
-    monitor.start_monitoring()
+def background_task(phone):
+    monitor.start_monitoring(phone=phone)
 
 
 @app.route('/start_work')
 def start_work():
     try:
         # Begin a new asynchronous job
-        job = q.enqueue_call(func=background_task, args=(), timeout='10000h')
-        print(job.get_id())
+        phone = session.get('phone', None)
+        job = q.enqueue_call(func=background_task, args=(phone,), timeout='10000h')
+
+        print(f'{job.get_id()} has been started with phone: {phone}')
     except Exception as e:
         return redirect(url_for('index', error=str(e)))
 
@@ -67,6 +84,8 @@ def login():
         if code_sent is True:
             return redirect(url_for('confirm'))
         elif code_sent == 'User is authorized':
+            # Save the phone into the session
+            session['phone'] = phone
             return redirect(url_for('index'))
         else:
             return render_template('login.html', form=form, error=code_sent)

@@ -51,8 +51,6 @@ class Monitor:
         try:
             self.client.log_out()
             self.client.disconnect()
-            with open('ssn.session', 'w') as f:
-                f.write('')
 
             self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
             self.client.connect()
@@ -64,13 +62,16 @@ class Monitor:
         Check if session has already been created (and returns False) 
         or sends confirmation code and returns True if this's not.
         """
+        # Recreate the client
+        self.client.disconnect()
+        self.client = TelegramClient(phone, api_id=self.get_api_id(), api_hash=self.get_api_hash())
+        self.client.connect()
 
-        if self.check_auth():
+        if self.client.is_user_authorized():
             return 'User is authorized'
 
         try:
-            result = self.client.send_code_request(phone=phone)
-            print(result)
+            self.client.send_code_request(phone=phone)
             return True
         except Exception as e:
             print(str(e))
@@ -210,6 +211,7 @@ class Monitor:
 
     def run_loop(self):
         while True:
+            print(self.client.session)
             for chain in self.get_chains():
 
                 # Setup peers for the incoming channel and the outgoing channel
@@ -235,11 +237,11 @@ class Monitor:
 
             sleep(2)
 
-    def start_monitoring(self):
+    def start_monitoring(self, phone):
         """Monitors new messages in channels and forward them into needed channels.
         """
         if not self.check_auth():
-            self.client = TelegramClient('ssn', api_id=self.get_api_id(), api_hash=self.get_api_hash())
+            self.client = TelegramClient(phone, api_id=self.get_api_id(), api_hash=self.get_api_hash())
             self.client.connect()
 
         self.run_loop()
